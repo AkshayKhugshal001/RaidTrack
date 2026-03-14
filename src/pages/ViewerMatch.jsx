@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { supabase } from "../services/supabaseClient"
 
@@ -8,28 +8,87 @@ function ViewerMatch() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const [match,     setMatch]     = useState(null)
-  const [team1Name, setTeam1Name] = useState("")
-  const [team2Name, setTeam2Name] = useState("")
-  const [t1Score,   setT1Score]   = useState(0)
-  const [t2Score,   setT2Score]   = useState(0)
-  const [timeLeft,  setTimeLeft]  = useState(0)
-  const [isRunning, setIsRunning] = useState(false)
-  const [events,    setEvents]    = useState([])
-  const [loading,   setLoading]   = useState(true)
+  const [team1Name,  setTeam1Name]  = useState("")
+  const [team2Name,  setTeam2Name]  = useState("")
+  const [t1Score,    setT1Score]    = useState(0)
+  const [t2Score,    setT2Score]    = useState(0)
+  const [timeLeft,   setTimeLeft]   = useState(0)
+  const [isRunning,  setIsRunning]  = useState(false)
+  const [status,     setStatus]     = useState("upcoming")
+  const [events,     setEvents]     = useState([])
+  const [loading,    setLoading]    = useState(true)
+  const [quitReason, setQuitReason] = useState(null)
 
-  // Keep team names in a ref so realtime callback can access them
-  const team1Ref = useState("")
-  const team2Ref = useState("")
+  // Keep latest values in refs so realtime callback always reads fresh values
+  const t1Ref       = useRef(0)
+  const t2Ref       = useRef(0)
+  const t1NameRef   = useRef("")
+  const t2NameRef   = useRef("")
+  const runningRef  = useRef(false)
+  const timerRef    = useRef(null)
+
+  // Update refs whenever state changes
+  useEffect(() => { t1Ref.current = t1Score }, [t1Score])
+  useEffect(() => { t2Ref.current = t2Score }, [t2Score])
+  useEffect(() => { t1NameRef.current = team1Name }, [team1Name])
+  useEffect(() => { t2NameRef.current = team2Name }, [team2Name])
+  useEffect(() => { runningRef.current = isRunning }, [isRunning])
 
   useEffect(() => {
     loadMatch()
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
   }, [])
 
+  // ── Local countdown ───────────────────────────────────────────
+  // Runs independently, syncs from DB every update
   useEffect(() => {
-    if (!match) return
+    if (timerRef.current) clearInterval(timerRef.current)
+    if (!isRunning) return
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 0) { clearInterval(timerRef.current); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timerRef.current)
+  }, [isRunning])
+
+  const addEvent = (text, color = "#fff") => {
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    setEvents(prev => [{ id: Date.now() + Math.random(), text, color, time }, ...prev].slice(0, 30))
+  }
+
+  const loadMatch = async () => {
+    const { data } = await supabase
+      .from("matches")
+      .select(`*, team1:team1_id(name), team2:team2_id(name)`)
+      .eq("id", id).single()
+    if (!data) return
+
+    setTeam1Name(data.team1.name)
+    setTeam2Name(data.team2.name)
+    t1NameRef.current = data.team1.name
+    t2NameRef.current = data.team2.name
+    setT1Score(data.team1_score)
+    setT2Score(data.team2_score)
+    t1Ref.current = data.team1_score
+    t2Ref.current = data.team2_score
+    setTimeLeft(data.time_remaining ?? 0)
+    setIsRunning(data.is_running ?? false)
+    runningRef.current = data.is_running ?? false
+    setStatus(data.status ?? "upcoming")
+    setQuitReason(data.quit_reason ?? null)
+    setLoading(false)
+
+    // Start realtime subscription after loading
+    subscribeToMatch()
+  }
+
+  const subscribeToMatch = () => {
     const channel = supabase
-      .channel("match-viewer-" + id)
+      .channel(`viewer-match-${id}`)
       .on(
         "postgres_changes",
         {
@@ -39,82 +98,100 @@ function ViewerMatch() {
           filter: `id=eq.${id}`,
         },
         (payload) => {
-          const updated = payload.new
-          const oldT1 = updated.team1_score
-          const oldT2 = updated.team2_score
+          const u = payload.new
 
-          setT1Score(prev => {
-            if (updated.team1_score > prev) {
-              const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-              setEvents(ev => [{ id: Date.now(), text: `${team1Name} scored! ${updated.team1_score} – ${updated.team2_score}`, color: "var(--yellow)", time: t }, ...ev].slice(0, 20))
+          // Sync timer from DB on every update
+          setTimeLeft(u.time_remaining ?? 0)
+
+          // Sync running state
+          const wasRunning = runningRef.current
+          setIsRunning(u.is_running)
+          runningRef.current = u.is_running
+
+          // Sync status
+          setStatus(u.status)
+          if (u.quit_reason) setQuitReason(u.quit_reason)
+
+          // Detect score changes and add to events
+          const prevT1 = t1Ref.current
+          const prevT2 = t2Ref.current
+
+          if (u.team1_score !== prevT1) {
+            const diff = u.team1_score - prevT1
+            if (diff > 0) {
+              addEvent(
+                `${t1NameRef.current} +${diff} → ${u.team1_score} – ${u.team2_score}`,
+                "var(--yellow)"
+              )
             }
-            return updated.team1_score
-          })
-
-          setT2Score(prev => {
-            if (updated.team2_score > prev) {
-              const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-              setEvents(ev => [{ id: Date.now() + 1, text: `${team2Name} scored! ${updated.team1_score} – ${updated.team2_score}`, color: "#fff", time: t }, ...ev].slice(0, 20))
-            }
-            return updated.team2_score
-          })
-
-          setTimeLeft(updated.time_remaining)
-          setIsRunning(updated.is_running)
-
-          if (!updated.is_running && updated.time_remaining === 1200) {
-            const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-            setEvents(ev => [{ id: Date.now() + 2, text: "Half Time!", color: "var(--green)", time: t }, ...ev].slice(0, 20))
+            setT1Score(u.team1_score)
+            t1Ref.current = u.team1_score
           }
 
-          if (!updated.is_running && updated.time_remaining === 0) {
-            const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-            setEvents(ev => [{ id: Date.now() + 3, text: "Full Time! Match Over.", color: "var(--orange)", time: t }, ...ev].slice(0, 20))
+          if (u.team2_score !== prevT2) {
+            const diff = u.team2_score - prevT2
+            if (diff > 0) {
+              addEvent(
+                `${t2NameRef.current} +${diff} → ${u.team1_score} – ${u.team2_score}`,
+                "#fff"
+              )
+            }
+            setT2Score(u.team2_score)
+            t2Ref.current = u.team2_score
+          }
+
+          // Show last_event as special event if it exists and changed
+          if (u.last_event) {
+            const isSpecial =
+              u.last_event.includes("Super Raid") ||
+              u.last_event.includes("Super Tackle") ||
+              u.last_event.includes("ALL OUT") ||
+              u.last_event.includes("Do-or-Die") ||
+              u.last_event.includes("Half Time") ||
+              u.last_event.includes("Full Time") ||
+              u.last_event.includes("Abandoned")
+
+            const color = u.last_event.includes("Super Raid")    ? "var(--yellow)"
+              : u.last_event.includes("Super Tackle")             ? "var(--cyan)"
+              : u.last_event.includes("ALL OUT")                  ? "var(--orange)"
+              : u.last_event.includes("Half Time")                ? "var(--green)"
+              : u.last_event.includes("Full Time")                ? "var(--green)"
+              : u.last_event.includes("Abandoned")                ? "var(--orange)"
+              : "#fff"
+
+            if (isSpecial) {
+              addEvent(u.last_event, color)
+            }
+          }
+
+          // Halftime
+          if (!u.is_running && wasRunning && u.time_remaining > 100) {
+            addEvent("⏸ Half Time!", "var(--green)")
+          }
+
+          // Full time
+          if (u.status === "completed") {
+            addEvent("🏁 Full Time!", "var(--green)")
+          }
+
+          // Abandoned
+          if (u.status === "draw" && u.quit_reason) {
+            addEvent(`Match Abandoned — ${u.quit_reason}`, "var(--orange)")
           }
         }
       )
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
-  }, [match, team1Name, team2Name])
-
-  // Local countdown timer mirrors the match clock
-  useEffect(() => {
-    if (!isRunning) return
-    const iv = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 0) { clearInterval(iv); return 0 }
-        return prev - 1
-      })
-    }, 1000)
-    return () => clearInterval(iv)
-  }, [isRunning])
-
-  const loadMatch = async () => {
-    const { data } = await supabase
-      .from("matches")
-      .select(`*, team1:team1_id(name), team2:team2_id(name)`)
-      .eq("id", id).single()
-    if (!data) return
-
-    setMatch(data)
-    setTeam1Name(data.team1.name)
-    setTeam2Name(data.team2.name)
-    setT1Score(data.team1_score)
-    setT2Score(data.team2_score)
-    setTimeLeft(data.time_remaining)
-    setIsRunning(data.is_running)
-    setLoading(false)
+    return channel
   }
 
   const totalScore = t1Score + t2Score
   const t1Pct = totalScore > 0 ? Math.round((t1Score / totalScore) * 100) : 50
   const t2Pct = 100 - t1Pct
-  const isOver = !isRunning && timeLeft === 0 && match !== null
-  const winner = isOver
-    ? t1Score > t2Score ? team1Name
-    : t2Score > t1Score ? team2Name
-    : null
+  const isOver = status === "completed" || status === "draw"
+  const isDraw = status === "draw" || (isOver && t1Score === t2Score)
+  const winner = isOver && !isDraw
+    ? t1Score > t2Score ? team1Name : team2Name
     : null
 
   if (loading) return (
@@ -139,8 +216,8 @@ function ViewerMatch() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isRunning && <div className="rt-live-dot" style={{ background: "var(--orange)" }} />}
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 14, letterSpacing: "3px", color: isRunning ? "var(--orange)" : "var(--muted)", textTransform: "uppercase" }}>
-            {isOver ? "Full Time" : isRunning ? "Live" : "Paused"}
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 14, letterSpacing: "3px", color: isRunning ? "var(--orange)" : isOver ? "var(--muted)" : "var(--yellow)", textTransform: "uppercase" }}>
+            {isOver ? (status === "draw" ? "Abandoned" : "Full Time") : isRunning ? "Live" : "Paused"}
           </span>
         </div>
         <button className="rt-btn-secondary" style={{ fontSize: 13, padding: "6px 16px" }} onClick={() => navigate("/viewer")}>
@@ -150,10 +227,18 @@ function ViewerMatch() {
 
       {/* Match Over Banner */}
       {isOver && (
-        <div style={{ background: "var(--yellow)", padding: "14px 24px", textAlign: "center" }}>
+        <div style={{ background: status === "draw" ? "var(--orange)" : "var(--yellow)", padding: "14px 24px", textAlign: "center" }}>
           <span style={{ fontFamily: "var(--font-display)", fontSize: 20, letterSpacing: 3, color: "#000", textTransform: "uppercase" }}>
-            {winner ? `${winner} Wins!` : "It's a Draw!"} — Final Score: {t1Score} – {t2Score}
+            {status === "draw"
+              ? `Match Abandoned — Draw · ${t1Score} – ${t2Score}`
+              : winner
+                ? `${winner} Wins! · Final: ${t1Score} – ${t2Score}`
+                : `Draw! · Final: ${t1Score} – ${t2Score}`
+            }
           </span>
+          {quitReason && (
+            <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.6)", marginTop: 4 }}>{quitReason}</div>
+          )}
         </div>
       )}
 
@@ -163,10 +248,10 @@ function ViewerMatch() {
 
         {/* Timer */}
         <div style={{ textAlign: "center", paddingTop: 24 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, letterSpacing: 4, color: isRunning ? "var(--orange)" : "var(--muted)", textTransform: "uppercase" }}>
-            {isOver ? "Full Time" : isRunning ? "● Live" : "⏸ Paused"}
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: 4, color: isRunning ? "var(--orange)" : isOver ? "var(--muted)" : "var(--yellow)", textTransform: "uppercase" }}>
+            {isOver ? (status === "draw" ? "Abandoned" : "Full Time") : isRunning ? "● Live" : "⏸ Paused"}
           </div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 48, letterSpacing: 4, color: "#fff", lineHeight: 1, marginTop: 4 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 52, letterSpacing: 4, color: "#fff", lineHeight: 1, marginTop: 4 }}>
             {fmt(timeLeft)}
           </div>
         </div>
@@ -177,20 +262,18 @@ function ViewerMatch() {
             <div style={{ fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: "3px", color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>
               {team1Name}
             </div>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(64px, 12vw, 100px)", lineHeight: 1, letterSpacing: -2, color: "var(--yellow)" }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(64px, 12vw, 100px)", lineHeight: 1, letterSpacing: -2, color: "var(--yellow)", transition: "all 0.3s" }}>
               {t1Score}
             </div>
           </div>
-
           <div style={{ textAlign: "center", minWidth: 60 }}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: 4, color: "rgba(255,255,255,0.15)" }}>–</div>
           </div>
-
           <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: "3px", color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>
               {team2Name}
             </div>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(64px, 12vw, 100px)", lineHeight: 1, letterSpacing: -2, color: "#fff" }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(64px, 12vw, 100px)", lineHeight: 1, letterSpacing: -2, color: "#fff", transition: "all 0.3s" }}>
               {t2Score}
             </div>
           </div>
@@ -215,11 +298,11 @@ function ViewerMatch() {
 
         {events.length === 0 ? (
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 4, padding: "32px 24px", textAlign: "center" }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 16, letterSpacing: 2, color: "var(--muted)" }}>
-              Waiting for match events...
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 16, letterSpacing: 2, color: "var(--muted)", marginBottom: 8 }}>
+              Waiting for events...
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginTop: 8 }}>
-              Score updates will appear here in real time
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>
+              Score updates and special events will appear here in real time
             </div>
           </div>
         ) : (
@@ -228,8 +311,8 @@ function ViewerMatch() {
               <div
                 key={event.id}
                 style={{
-                  background: idx === 0 ? "rgba(255,255,255,0.05)" : "var(--card)",
-                  border: `1px solid ${idx === 0 ? "rgba(255,255,255,0.12)" : "var(--border)"}`,
+                  background: idx === 0 ? "rgba(255,255,255,0.06)" : "var(--card)",
+                  border: `1px solid ${idx === 0 ? "rgba(255,255,255,0.15)" : "var(--border)"}`,
                   borderLeft: `3px solid ${event.color}`,
                   borderRadius: 4,
                   padding: "12px 16px",
@@ -237,11 +320,11 @@ function ViewerMatch() {
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: 12,
-                  opacity: Math.max(0.3, 1 - idx * 0.08),
+                  opacity: Math.max(0.25, 1 - idx * 0.07),
                   transition: "all 0.3s",
                 }}
               >
-                <span style={{ fontSize: 14, fontWeight: 700, color: event.color, letterSpacing: "0.5px" }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: event.color }}>
                   {event.text}
                 </span>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", letterSpacing: 1, flexShrink: 0 }}>
@@ -252,15 +335,14 @@ function ViewerMatch() {
           </div>
         )}
 
-        {/* Realtime indicator */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 20, justifyContent: "center" }}>
-          <div className="rt-live-dot" style={{ background: "var(--green)" }} />
+        {/* Connection status */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 24, justifyContent: "center" }}>
+          <div className="rt-live-dot" style={{ background: isOver ? "var(--muted)" : "var(--green)" }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: 2, textTransform: "uppercase" }}>
-            Connected — updates in real time
+            {isOver ? "Match Ended" : "Connected — Real Time Updates"}
           </span>
         </div>
       </div>
-
     </div>
   )
 }

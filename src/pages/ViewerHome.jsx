@@ -3,30 +3,27 @@ import { useNavigate } from "react-router-dom"
 import { supabase } from "../services/supabaseClient"
 
 function ViewerHome() {
-  const [matches,  setMatches]  = useState([])
-  const [loading,  setLoading]  = useState(true)
+  const [matches, setMatches] = useState([])
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetchLiveMatches()
+    fetchMatches()
   }, [])
 
-  const fetchLiveMatches = async () => {
+  const fetchMatches = async () => {
     const { data } = await supabase
       .from("matches")
-      .select(`
-        *,
-        team1:team1_id(name),
-        team2:team2_id(name)
-      `)
+      .select(`*, team1:team1_id(name), team2:team2_id(name)`)
       .order("created_at", { ascending: false })
     setMatches(data || [])
     setLoading(false)
   }
 
-  const liveMatches     = matches.filter(m => m.is_running)
-  const recentMatches   = matches.filter(m => !m.is_running && m.time_remaining === 0)
-  const pausedMatches   = matches.filter(m => !m.is_running && m.time_remaining > 0)
+  const liveMatches      = matches.filter(m => m.status === "live")
+  const pausedMatches    = matches.filter(m => m.status === "paused")
+  const upcomingMatches  = matches.filter(m => m.status === "upcoming")
+  const completedMatches = matches.filter(m => m.status === "completed" || m.status === "draw")
 
   return (
     <div className="rt-page">
@@ -56,15 +53,16 @@ function ViewerHome() {
 
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "48px 20px" }}>
 
+        {/* Header */}
         <div style={{ marginBottom: 40, textAlign: "center" }}>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: 5, color: "var(--cyan)", textTransform: "uppercase", marginBottom: 12 }}>
-            Live Now
+            Viewer Mode
           </div>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 6vw, 64px)", letterSpacing: 3, color: "#fff", textTransform: "uppercase", lineHeight: 1 }}>
             Watch Matches
           </h1>
           <p style={{ fontSize: 14, fontWeight: 600, color: "var(--muted)", letterSpacing: 1, marginTop: 12 }}>
-            Select a match below to watch live updates in real time
+            Select a match to watch live updates in real time
           </p>
         </div>
 
@@ -74,7 +72,7 @@ function ViewerHome() {
           </div>
         ) : (
           <>
-            {/* Live matches */}
+            {/* Live */}
             {liveMatches.length > 0 && (
               <div style={{ marginBottom: 32 }}>
                 <div className="rt-section-label" style={{ color: "var(--orange)" }}>
@@ -82,18 +80,13 @@ function ViewerHome() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {liveMatches.map(match => (
-                    <MatchCard
-                      key={match.id}
-                      match={match}
-                      status="live"
-                      onClick={() => navigate(`/viewer/${match.id}`)}
-                    />
+                    <MatchCard key={match.id} match={match} status="live" onClick={() => navigate(`/viewer/${match.id}`)} />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Paused matches */}
+            {/* Paused */}
             {pausedMatches.length > 0 && (
               <div style={{ marginBottom: 32 }}>
                 <div className="rt-section-label" style={{ color: "var(--yellow)" }}>
@@ -101,37 +94,41 @@ function ViewerHome() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {pausedMatches.map(match => (
-                    <MatchCard
-                      key={match.id}
-                      match={match}
-                      status="paused"
-                      onClick={() => navigate(`/viewer/${match.id}`)}
-                    />
+                    <MatchCard key={match.id} match={match} status="paused" onClick={() => navigate(`/viewer/${match.id}`)} />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Completed matches */}
-            {recentMatches.length > 0 && (
+            {/* Upcoming */}
+            {upcomingMatches.length > 0 && (
               <div style={{ marginBottom: 32 }}>
                 <div className="rt-section-label" style={{ color: "var(--muted)" }}>
-                  Completed ({recentMatches.length})
+                  Upcoming Fixtures ({upcomingMatches.length})
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {recentMatches.map(match => (
-                    <MatchCard
-                      key={match.id}
-                      match={match}
-                      status="completed"
-                      onClick={() => navigate(`/viewer/${match.id}`)}
-                    />
+                  {upcomingMatches.map(match => (
+                    <MatchCard key={match.id} match={match} status="upcoming" onClick={() => navigate(`/viewer/${match.id}`)} />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* No matches at all */}
+            {/* Completed */}
+            {completedMatches.length > 0 && (
+              <div style={{ marginBottom: 32 }}>
+                <div className="rt-section-label" style={{ color: "var(--muted)" }}>
+                  Match History ({completedMatches.length})
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {completedMatches.map(match => (
+                    <MatchCard key={match.id} match={match} status={match.status} onClick={() => navigate(`/viewer/${match.id}`)} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No matches */}
             {matches.length === 0 && (
               <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 4, padding: "64px 24px", textAlign: "center" }}>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 24, letterSpacing: 3, color: "var(--muted)", marginBottom: 12 }}>
@@ -151,65 +148,107 @@ function ViewerHome() {
 
 // ── Match Card ────────────────────────────────────────────────
 function MatchCard({ match, status, onClick }) {
+  const fmt = (t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`
+
   const isLive      = status === "live"
   const isPaused    = status === "paused"
+  const isUpcoming  = status === "upcoming"
   const isCompleted = status === "completed"
+  const isDraw      = status === "draw"
 
-  const accentColor = isLive ? "var(--orange)" : isPaused ? "var(--yellow)" : "rgba(255,255,255,0.2)"
+  const accentColor =
+    isLive      ? "var(--orange)" :
+    isPaused    ? "var(--yellow)" :
+    isUpcoming  ? "rgba(255,255,255,0.2)" :
+    isDraw      ? "var(--cyan)" :
+    "rgba(255,255,255,0.15)"
 
-  const fmt = (t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`
+  const statusLabel =
+    isLive      ? "Live" :
+    isPaused    ? "Paused" :
+    isUpcoming  ? "Upcoming" :
+    isDraw      ? "Draw" :
+    "Final"
+
+  const winner = isCompleted
+    ? match.team1_score > match.team2_score ? match.team1?.name
+    : match.team2_score > match.team1_score ? match.team2?.name
+    : "Draw"
+    : null
 
   return (
     <div
       onClick={onClick}
-      style={{ background: "var(--card)", border: "1px solid var(--border)", borderLeft: `3px solid ${accentColor}`, borderRadius: 4, padding: "20px 24px", cursor: "pointer", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 16 }}
+      style={{ background: "var(--card)", border: "1px solid var(--border)", borderLeft: `3px solid ${accentColor}`, borderRadius: 4, padding: "18px 20px", cursor: "pointer", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}
       onMouseEnter={e => e.currentTarget.style.background = "var(--card2)"}
       onMouseLeave={e => e.currentTarget.style.background = "var(--card)"}
     >
-      {/* Status badge */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 64 }}>
-        {isLive && <div className="rt-live-dot" style={{ background: "var(--orange)" }} />}
-        <span style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 10,
-          letterSpacing: 2,
-          textTransform: "uppercase",
-          color: accentColor,
-          padding: "3px 8px",
-          border: `1px solid ${accentColor}`,
-          borderRadius: 2,
-        }}>
-          {isLive ? "Live" : isPaused ? "Paused" : "Final"}
-        </span>
-        {!isCompleted && (
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--muted)", letterSpacing: 1 }}>
-            {fmt(match.time_remaining)}
+
+      {/* Status */}
+      <div style={{ minWidth: 80 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+          {isLive && <div className="rt-live-dot" style={{ background: "var(--orange)" }} />}
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: accentColor, padding: "3px 8px", border: `1px solid ${accentColor}`, borderRadius: 2 }}>
+            {statusLabel}
           </span>
+        </div>
+        {(isLive || isPaused) && (
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 13, color: "var(--muted)", letterSpacing: 1 }}>
+            {fmt(match.time_remaining)}
+          </div>
+        )}
+        {isUpcoming && (
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginTop: 2 }}>
+            {(match.half_duration || 1200) / 60}m halves
+          </div>
         )}
       </div>
 
-      {/* Teams + score */}
+      {/* Teams + Score */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, letterSpacing: 2, color: "#fff", textTransform: "uppercase" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: 1, color: "#fff", textTransform: "uppercase" }}>
             {match.team1?.name}
           </div>
         </div>
-
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 32, letterSpacing: 2, color: "#fff" }}>
-            <span style={{ color: "var(--yellow)" }}>{match.team1_score}</span>
-            <span style={{ color: "rgba(255,255,255,0.2)", margin: "0 8px" }}>–</span>
-            <span>{match.team2_score}</span>
-          </div>
+          {isUpcoming ? (
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: 2, color: "var(--muted)" }}>vs</div>
+          ) : (
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: 2 }}>
+              <span style={{ color: "var(--yellow)" }}>{match.team1_score}</span>
+              <span style={{ color: "rgba(255,255,255,0.2)", margin: "0 6px" }}>–</span>
+              <span style={{ color: "#fff" }}>{match.team2_score}</span>
+            </div>
+          )}
         </div>
-
         <div style={{ flex: 1, textAlign: "right" }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, letterSpacing: 2, color: "#fff", textTransform: "uppercase" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: 1, color: "#fff", textTransform: "uppercase" }}>
             {match.team2?.name}
           </div>
         </div>
       </div>
+
+      {/* Result */}
+      {(winner || isDraw) && (
+        <div style={{ minWidth: 100, textAlign: "right" }}>
+          {winner && winner !== "Draw" && (
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--green)", letterSpacing: 1, textTransform: "uppercase" }}>
+              {winner} Won
+            </div>
+          )}
+          {(winner === "Draw" || isDraw) && (
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--cyan)", letterSpacing: 1, textTransform: "uppercase" }}>
+              Draw
+            </div>
+          )}
+          {isDraw && match.quit_reason && (
+            <div style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", marginTop: 2 }}>
+              {match.quit_reason}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Arrow */}
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
