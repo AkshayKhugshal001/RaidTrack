@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 
 function Dashboard() {
   const navigate = useNavigate()
+  const { signOut } = useAuth()
 
   return (
     <div className="rt-page">
@@ -17,10 +19,23 @@ function Dashboard() {
           </div>
           <span className="rt-nav-title">Raid<span>Track</span></span>
         </div>
-        <div className="rt-nav-links">
-          <span className="rt-nav-link active">Dashboard</span>
-          <button className="rt-nav-link" onClick={() => navigate("/create-match")}>Matches</button>
-          <button className="rt-nav-link" onClick={() => navigate("/teams")}>Teams</button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="rt-nav-links">
+            <span className="rt-nav-link active">Dashboard</span>
+            <button className="rt-nav-link" onClick={() => navigate("/create-match")}>Matches</button>
+            <button className="rt-nav-link" onClick={() => navigate("/teams")}>Teams</button>
+          </div>
+          <button
+            className="rt-btn-secondary"
+            style={{ fontSize: 13, padding: "6px 16px", marginLeft: 8 }}
+            onClick={async () => {
+              await signOut()
+              navigate("/login")
+            }}
+          >
+            Sign Out
+          </button>
         </div>
       </nav>
 
@@ -60,7 +75,7 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* ── Two Action Cards Only ── */}
+      {/* ── Two Action Cards ── */}
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 48px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
 
         {/* Create Match */}
@@ -115,7 +130,7 @@ function Dashboard() {
 
       </div>
 
-      {/* ── Feature strip ── */}
+      {/* ── Feature Strip ── */}
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 40px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
         {[
           { label: "Live Timer",    color: "var(--yellow)" },
