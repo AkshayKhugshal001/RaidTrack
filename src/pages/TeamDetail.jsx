@@ -36,6 +36,12 @@ function TeamDetail() {
     fetchPlayers()
   }
 
+  const removePlayer = async (playerId) => {
+    if (!window.confirm("Remove this player?")) return
+    await supabase.from("players").delete().eq("id", playerId)
+    fetchPlayers()
+  }
+
   const handleKey = (e) => {
     if (e.key === "Enter") addPlayer()
   }
@@ -88,7 +94,7 @@ function TeamDetail() {
             {team?.name || "Loading..."}
           </h1>
           <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: "1px", color: "var(--muted)", marginTop: 8, textTransform: "uppercase" }}>
-            {players.length} / 7 min players
+            {players.length} players
             {players.length >= 7
               ? <span style={{ color: "var(--green)", marginLeft: 10 }}>● Ready to play</span>
               : <span style={{ color: "var(--orange)", marginLeft: 10 }}>● Need {7 - players.length} more</span>
@@ -110,18 +116,12 @@ function TeamDetail() {
               className="rt-input"
               style={{ flex: 1, minWidth: 200 }}
             />
-            <select
-              className="rt-select"
-              value={position}
-              onChange={e => setPosition(e.target.value)}
-            >
+            <select className="rt-select" value={position} onChange={e => setPosition(e.target.value)}>
               <option value="raider">Raider</option>
               <option value="defender">Defender</option>
               <option value="allrounder">Allrounder</option>
             </select>
-            <button className="rt-btn-primary" onClick={addPlayer}>
-              Add Player
-            </button>
+            <button className="rt-btn-primary" onClick={addPlayer}>Add Player</button>
           </div>
         </div>
 
@@ -132,16 +132,19 @@ function TeamDetail() {
                 {group.label} ({group.list.length})
                 <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {group.list.map((player, idx) => (
                   <div
                     key={player.id}
-                    style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 4, padding: "16px", display: "flex", alignItems: "center", gap: 12 }}
+                    style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 4, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}
                   >
+                    {/* Jersey number */}
                     <div style={{ width: 36, height: 36, background: `${group.accent}1a`, borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontSize: 18, color: group.accent, flexShrink: 0 }}>
                       {idx + 1}
                     </div>
-                    <div>
+
+                    {/* Name + position */}
+                    <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", letterSpacing: "0.5px" }}>
                         {player.name}
                       </div>
@@ -149,6 +152,29 @@ function TeamDetail() {
                         {player.position}
                       </div>
                     </div>
+
+                    {/* Remove button */}
+                    <button
+                      onClick={() => removePlayer(player.id)}
+                      style={{
+                        background: "rgba(255,92,0,0.1)",
+                        border: "1px solid rgba(255,92,0,0.25)",
+                        borderRadius: 3,
+                        color: "var(--orange)",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: "1px",
+                        textTransform: "uppercase",
+                        padding: "5px 12px",
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                        flexShrink: 0,
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,92,0,0.2)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "rgba(255,92,0,0.1)"}
+                    >
+                      Remove
+                    </button>
                   </div>
                 ))}
               </div>
