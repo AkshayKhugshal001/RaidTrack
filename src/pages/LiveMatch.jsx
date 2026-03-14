@@ -124,52 +124,24 @@ function CoinTossScreen({ team1Name, team2Name, halfDuration, onDecide }) {
 // ── Quit Modal ────────────────────────────────────────────────
 function QuitModal({ team1Name, team2Name, t1Score, t2Score, onConfirm, onCancel }) {
   const [reason, setReason] = useState("")
-
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 998, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.88)" }}>
       <div style={{ background: "var(--card)", border: "2px solid var(--orange)", borderRadius: 6, padding: "32px 36px", maxWidth: 440, width: "90%", display: "flex", flexDirection: "column", gap: 16 }}>
-
-        <div style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: 3, color: "var(--orange)", textTransform: "uppercase" }}>
-          Quit Match?
-        </div>
-
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: 3, color: "var(--orange)", textTransform: "uppercase" }}>Quit Match?</div>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", lineHeight: 1.6 }}>
           This will end the match as a <span style={{ color: "var(--cyan)" }}>Draw</span>. Current score: <span style={{ color: "var(--yellow)" }}>{team1Name} {t1Score}</span> – <span style={{ color: "#fff" }}>{t2Score} {team2Name}</span>
         </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <label style={{ fontFamily: "var(--font-display)", fontSize: 12, letterSpacing: "3px", textTransform: "uppercase", color: "var(--muted)" }}>
-            Select Reason
-          </label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {QUIT_REASONS.map(r => (
-              <div
-                key={r}
-                onClick={() => setReason(r)}
-                style={{ padding: "10px 14px", borderRadius: 3, cursor: "pointer", border: reason === r ? "1px solid var(--orange)" : "1px solid var(--border)", background: reason === r ? "rgba(255,92,0,0.1)" : "var(--card2)", fontSize: 13, fontWeight: 600, color: reason === r ? "var(--orange)" : "var(--muted)", transition: "all 0.12s" }}
-              >
-                {r}
-              </div>
-            ))}
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {QUIT_REASONS.map(r => (
+            <div key={r} onClick={() => setReason(r)}
+              style={{ padding: "10px 14px", borderRadius: 3, cursor: "pointer", border: reason === r ? "1px solid var(--orange)" : "1px solid var(--border)", background: reason === r ? "rgba(255,92,0,0.1)" : "var(--card2)", fontSize: 13, fontWeight: 600, color: reason === r ? "var(--orange)" : "var(--muted)", transition: "all 0.12s" }}>
+              {r}
+            </div>
+          ))}
         </div>
-
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <button
-            className="rt-btn-danger"
-            style={{ flex: 1, padding: "12px 0", fontSize: 16, opacity: reason ? 1 : 0.4 }}
-            disabled={!reason}
-            onClick={() => onConfirm(reason)}
-          >
-            End as Draw
-          </button>
-          <button
-            className="rt-btn-secondary"
-            style={{ flex: 1, padding: "12px 0", fontSize: 16 }}
-            onClick={onCancel}
-          >
-            Cancel
-          </button>
+          <button className="rt-btn-danger" style={{ flex: 1, padding: "12px 0", fontSize: 16, opacity: reason ? 1 : 0.4 }} disabled={!reason} onClick={() => onConfirm(reason)}>End as Draw</button>
+          <button className="rt-btn-secondary" style={{ flex: 1, padding: "12px 0", fontSize: 16 }} onClick={onCancel}>Cancel</button>
         </div>
       </div>
     </div>
@@ -182,12 +154,8 @@ function OutQueuePanel({ queue, allPlayers, accentColor, label }) {
   return (
     <div className="rt-card" style={{ borderTop: `3px solid ${accentColor}`, marginBottom: 12 }}>
       <div className="rt-card-header">
-        <span className="rt-card-title" style={{ fontSize: 13, color: accentColor }}>
-          {label} — Out ({queue.length})
-        </span>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", letterSpacing: 1, textTransform: "uppercase" }}>
-          Revival order →
-        </span>
+        <span className="rt-card-title" style={{ fontSize: 13, color: accentColor }}>{label} — Out ({queue.length})</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", letterSpacing: 1, textTransform: "uppercase" }}>Revival order →</span>
       </div>
       <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
         {queue.map((pid, idx) => {
@@ -196,18 +164,12 @@ function OutQueuePanel({ queue, allPlayers, accentColor, label }) {
           const isNext = idx === 0
           return (
             <div key={pid} style={{ padding: "8px 12px", borderRadius: 3, background: isNext ? `${accentColor}18` : "rgba(255,255,255,0.03)", border: isNext ? `1px solid ${accentColor}55` : "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 3, background: isNext ? accentColor : "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontSize: 13, color: isNext ? "#000" : "var(--muted)", flexShrink: 0 }}>
-                {idx + 1}
-              </div>
+              <div style={{ width: 24, height: 24, borderRadius: 3, background: isNext ? accentColor : "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontSize: 13, color: isNext ? "#000" : "var(--muted)", flexShrink: 0 }}>{idx + 1}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: isNext ? "#fff" : "rgba(255,255,255,0.45)" }}>{pl.name}</div>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", letterSpacing: 1, textTransform: "uppercase", marginTop: 1 }}>{pl.position}</div>
               </div>
-              {isNext && (
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", padding: "3px 8px", borderRadius: 2, background: accentColor, color: "#000", flexShrink: 0 }}>
-                  Next
-                </span>
-              )}
+              {isNext && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", padding: "3px 8px", borderRadius: 2, background: accentColor, color: "#000", flexShrink: 0 }}>Next</span>}
             </div>
           )
         })}
@@ -252,14 +214,9 @@ function LiveMatch() {
 
   useEffect(() => { loadMatch() }, [])
 
-  // ── Broadcast event to viewer ─────────────────────────────────
-  // We store events in the matches table as a JSON column
-  // Instead we use a simple approach — update a last_event column
-  const broadcastEvent = async (text) => {
-    await supabase
-      .from("matches")
-      .update({ last_event: text })
-      .eq("id", id)
+  // ── Single atomic DB update — sends everything in ONE call ────
+  const syncDB = async (updates) => {
+    await supabase.from("matches").update(updates).eq("id", id)
   }
 
   const loadMatch = async () => {
@@ -277,7 +234,6 @@ function LiveMatch() {
     setHalfDuration(data.half_duration || 1200)
     setMatchTime(data.time_remaining ?? data.half_duration ?? 1200)
 
-    // If match already started (status is live/paused) skip toss
     if (data.status === "live" || data.status === "paused") {
       setScreen("match")
     }
@@ -296,8 +252,7 @@ function LiveMatch() {
     setRaidingTeam(team)
     setFirstRaider(team)
     setScreen("match")
-    // Mark match as paused (started but not running yet)
-    await supabase.from("matches").update({ status: "paused" }).eq("id", id)
+    await syncDB({ status: "paused" })
   }
 
   // ── Match clock ───────────────────────────────────────────────
@@ -316,8 +271,12 @@ function LiveMatch() {
           setEmptyStreak({ 1: 0, 2: 0 })
           showAlert({ ...ALERT.HALFTIME, sub: "Half Time — break. Raids swap." }, 4000)
           beep("halftime")
-          supabase.from("matches").update({ is_running: false, time_remaining: halfDuration, status: "paused" }).eq("id", id)
-          broadcastEvent("Half Time!")
+          syncDB({
+            is_running: false,
+            time_remaining: halfDuration,
+            status: "paused",
+            last_event: "⏸ Half Time! Raids swap in 2nd half.",
+          })
           return 0
         }
         if (next === 0 && half === 2) {
@@ -325,11 +284,19 @@ function LiveMatch() {
           setIsRunning(false)
           setRaidRunning(false)
           setScreen("over")
-          supabase.from("matches").update({ is_running: false, time_remaining: 0, status: "completed", ended_at: new Date().toISOString() }).eq("id", id)
-          broadcastEvent("Full Time!")
+          syncDB({
+            is_running: false,
+            time_remaining: 0,
+            status: "completed",
+            ended_at: new Date().toISOString(),
+            last_event: "🏁 Full Time! Match over.",
+          })
           return 0
         }
-        supabase.from("matches").update({ time_remaining: next }).eq("id", id)
+        // Update DB every 5 seconds to reduce writes but keep viewer in sync
+        if (next % 5 === 0) {
+          syncDB({ time_remaining: next, is_running: true })
+        }
         return next
       })
     }, 1000)
@@ -365,18 +332,18 @@ function LiveMatch() {
   const flipRaidingTeam = () => setRaidingTeam(prev => prev === 1 ? 2 : 1)
   const resetRaidState = () => { setRaidingPlayer(null); setTaggedPlayers([]); setBonusTouched(false) }
 
-  // ── Quit match ────────────────────────────────────────────────
+  // ── Quit ──────────────────────────────────────────────────────
   const handleQuit = async (reason) => {
     setShowQuit(false)
     setIsRunning(false)
     setRaidRunning(false)
-    await supabase.from("matches").update({
+    await syncDB({
       is_running: false,
       status: "draw",
       quit_reason: reason,
       ended_at: new Date().toISOString(),
-    }).eq("id", id)
-    broadcastEvent(`Match ended — ${reason}`)
+      last_event: `Match Abandoned — ${reason}`,
+    })
     setScreen("over")
   }
 
@@ -401,7 +368,7 @@ function LiveMatch() {
           if (defendingTeam === 1) {
             setT1Score(s => {
               const ns = s + 1
-              supabase.from("matches").update({ team1_score: ns }).eq("id", id)
+              syncDB({ team1_score: ns, last_event: `❌ Do-or-Die failed! ${prev.name} is out — ${team2Name} +1` })
               return ns
             })
             setT1OutQueue(q => {
@@ -411,7 +378,7 @@ function LiveMatch() {
           } else {
             setT2Score(s => {
               const ns = s + 1
-              supabase.from("matches").update({ team2_score: ns }).eq("id", id)
+              syncDB({ team2_score: ns, last_event: `❌ Do-or-Die failed! ${prev.name} is out — ${team1Name} +1` })
               return ns
             })
             setT2OutQueue(q => {
@@ -452,7 +419,7 @@ function LiveMatch() {
     setTaggedPlayers(prev => prev.includes(pid) ? prev.filter(x => x !== pid) : [...prev, pid])
   }
 
-  // ── Confirm Raid ──────────────────────────────────────────────
+  // ── Confirm Raid ——————————————————————————————————————————————
   const confirmRaid = async (raidSuccess) => {
     setRaidRunning(false)
     setRaidPhase("select_raider")
@@ -472,11 +439,14 @@ function LiveMatch() {
     const setRaidOutQ = (v) => { if (raidingTeam === 1) newT1OutQueue = v; else newT2OutQueue = v }
     const setDefOutQ  = (v) => { if (raidingTeam === 1) newT2OutQueue = v; else newT1OutQueue = v }
 
-    let raidPts   = 0
-    let tacklePts = 0
+    let raidPts        = 0
+    let tacklePts      = 0
+    let eventText      = ""
     let newEmptyStreak = { ...emptyStreak }
-    const bonusPts = bonusTouched ? 1 : 0
-    let eventText = ""
+    const bonusPts     = bonusTouched ? 1 : 0
+    const raiderName   = raidingPlayer?.name || "Raider"
+    const raidTeamName = raidingTeam === 1 ? team1Name : team2Name
+    const defTeamName  = raidingTeam === 1 ? team2Name : team1Name
 
     if (raidSuccess) {
       raidPts = taggedPlayers.length + bonusPts
@@ -485,9 +455,9 @@ function LiveMatch() {
         setRaidMat(getRaidMat().filter(x => x !== raidingPlayer?.id))
         setRaidOutQ([...getRaidOutQ(), raidingPlayer?.id])
         newEmptyStreak[raidingTeam] = 0
-        showAlert({ color: "var(--orange)", label: "DO-OR-DIE FAILED!", sub: `${raidingTeam === 1 ? team1Name : team2Name} raider out` }, 3000)
+        eventText = `❌ Do-or-Die failed! ${raiderName} is out — no points`
+        showAlert({ color: "var(--orange)", label: "DO-OR-DIE FAILED!", sub: eventText }, 3000)
         beep("alert")
-        eventText = `Do-or-Die failed! ${raidingTeam === 1 ? team1Name : team2Name} raider out`
       } else {
         taggedPlayers.forEach(pid => {
           setDefMat(getDefMat().filter(x => x !== pid))
@@ -498,36 +468,40 @@ function LiveMatch() {
           setRaidMat([...getRaidMat(), ...getRaidOutQ().slice(0, revivedCount)])
           setRaidOutQ(getRaidOutQ().slice(revivedCount))
         }
-        if (taggedPlayers.length >= 3) {
-          showAlert({ ...ALERT.SUPER_RAID, sub: `${raidingPlayer?.name} tagged ${taggedPlayers.length} — Super Raid!` }, 3000)
-          beep("special")
-          eventText = `Super Raid! ${raidingPlayer?.name} tagged ${taggedPlayers.length} players`
-        } else {
-          eventText = `${raidingTeam === 1 ? team1Name : team2Name} scored ${raidPts} point${raidPts !== 1 ? "s" : ""}`
-        }
         newEmptyStreak[raidingTeam] = 0
+
+        if (taggedPlayers.length >= 3) {
+          eventText = `🔥 Super Raid! ${raiderName} tagged ${taggedPlayers.length} defenders (+${raidPts} pts)`
+          showAlert({ ...ALERT.SUPER_RAID, sub: eventText }, 3000)
+          beep("special")
+        } else {
+          const tagPart = taggedPlayers.length > 0 ? `${taggedPlayers.length} tagged` : "no tags"
+          const bonusPart = bonusTouched ? " + bonus line" : ""
+          eventText = `${raiderName} raid — ${tagPart}${bonusPart} (+${raidPts} pts) for ${raidTeamName}`
+        }
 
         if (getDefMat().length === 0) {
           raidPts += ALL_OUT_BONUS
           const allDefPlayers = defendingTeam === 1 ? team1Players : team2Players
           setDefMat(allDefPlayers.slice(0, 7).map(p => p.id))
           setDefOutQ([])
-          showAlert({ ...ALERT.ALL_OUT, sub: `${defendingTeam === 1 ? team1Name : team2Name} All Out! +${ALL_OUT_BONUS}` }, 3500)
+          eventText = `💥 ALL OUT! ${defTeamName} — full team eliminated! +${ALL_OUT_BONUS} bonus`
+          showAlert({ ...ALERT.ALL_OUT, sub: eventText }, 3500)
           beep("special")
-          eventText = `ALL OUT! ${defendingTeam === 1 ? team1Name : team2Name} — +${ALL_OUT_BONUS} bonus`
         }
       }
     } else {
       raidPts = bonusPts
       const numDefenders = getDefMat().length
+
       if (numDefenders <= 3) {
         tacklePts = SUPER_TACKLE_PTS
-        showAlert({ ...ALERT.SUPER_TACKLE, sub: `${defendingTeam === 1 ? team1Name : team2Name} — Super Tackle! +${SUPER_TACKLE_PTS}` }, 3000)
+        eventText = `⚡ Super Tackle! ${defTeamName} (${numDefenders} defenders) caught ${raiderName} (+${SUPER_TACKLE_PTS} pts)`
+        showAlert({ ...ALERT.SUPER_TACKLE, sub: eventText }, 3000)
         beep("special")
-        eventText = `Super Tackle! ${defendingTeam === 1 ? team1Name : team2Name} +${SUPER_TACKLE_PTS}`
       } else {
         tacklePts = 1
-        eventText = `${defendingTeam === 1 ? team1Name : team2Name} tackle — raider out`
+        eventText = `🤚 ${defTeamName} tackled ${raiderName}${bonusTouched ? " (bonus to " + raidTeamName + ")" : ""}`
       }
 
       setRaidMat(getRaidMat().filter(x => x !== raidingPlayer?.id))
@@ -544,9 +518,9 @@ function LiveMatch() {
         const allRaidPlayers = raidingTeam === 1 ? team1Players : team2Players
         setRaidMat(allRaidPlayers.slice(0, 7).map(p => p.id))
         setRaidOutQ([])
-        showAlert({ ...ALERT.ALL_OUT, sub: `${raidingTeam === 1 ? team1Name : team2Name} All Out! +${ALL_OUT_BONUS}` }, 3500)
+        eventText = `💥 ALL OUT! ${raidTeamName} — full team eliminated! +${ALL_OUT_BONUS} bonus`
+        showAlert({ ...ALERT.ALL_OUT, sub: eventText }, 3500)
         beep("special")
-        eventText = `ALL OUT! ${raidingTeam === 1 ? team1Name : team2Name} — +${ALL_OUT_BONUS} bonus`
       }
     }
 
@@ -559,15 +533,20 @@ function LiveMatch() {
     setT1Score(newT1Score)
     setT2Score(newT2Score)
 
-    await supabase.from("matches").update({
-      team1_score: newT1Score,
-      team2_score: newT2Score,
-      last_event: eventText,
-    }).eq("id", id)
+    // ── ONE atomic update — score + event + time all together ──
+    await syncDB({
+      team1_score:    newT1Score,
+      team2_score:    newT2Score,
+      time_remaining: matchTime,
+      last_event:     eventText,
+    })
 
+    // Save player stats
     if (raidingPlayer) {
       const pts = raidPts
-      const { data: existing } = await supabase.from("player_match_stats").select("*").eq("match_id", id).eq("player_id", raidingPlayer.id).maybeSingle()
+      const { data: existing } = await supabase
+        .from("player_match_stats").select("*")
+        .eq("match_id", id).eq("player_id", raidingPlayer.id).maybeSingle()
       if (!existing) {
         await supabase.from("player_match_stats").insert([{
           match_id: id, player_id: raidingPlayer.id,
@@ -611,19 +590,12 @@ function LiveMatch() {
   )
 
   if (screen === "toss") return (
-    <CoinTossScreen
-      team1Name={team1Name}
-      team2Name={team2Name}
-      halfDuration={halfDuration}
-      onDecide={handleTossDecision}
-    />
+    <CoinTossScreen team1Name={team1Name} team2Name={team2Name} halfDuration={halfDuration} onDecide={handleTossDecision} />
   )
 
   if (screen === "over") {
-    const isDraw = match?.status === "draw" || (t1Score === t2Score)
-    const winner = !isDraw
-      ? t1Score > t2Score ? team1Name : team2Name
-      : null
+    const isDraw = match?.status === "draw" || t1Score === t2Score
+    const winner = !isDraw ? (t1Score > t2Score ? team1Name : team2Name) : null
     return (
       <div style={{ minHeight: "100vh", background: "var(--dark)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, padding: 24 }}>
         <div style={{ fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: 6, color: "var(--muted)", textTransform: "uppercase" }}>
@@ -632,20 +604,14 @@ function LiveMatch() {
         <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(40px, 8vw, 72px)", letterSpacing: 4, color: "var(--yellow)", textTransform: "uppercase", textAlign: "center", lineHeight: 1 }}>
           {winner ? `${winner} Wins!` : "Draw"}
         </div>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: 52, letterSpacing: 4, color: "#fff" }}>
-          {t1Score} – {t2Score}
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", letterSpacing: 1, textTransform: "uppercase" }}>
-          {team1Name} vs {team2Name}
-        </div>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 52, letterSpacing: 4, color: "#fff" }}>{t1Score} – {t2Score}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", letterSpacing: 1, textTransform: "uppercase" }}>{team1Name} vs {team2Name}</div>
         {match?.quit_reason && (
           <div style={{ background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 600, color: "var(--orange)" }}>
             {match.quit_reason}
           </div>
         )}
-        <button className="rt-btn-primary" style={{ marginTop: 16, fontSize: 18, padding: "12px 40px" }} onClick={() => navigate("/")}>
-          Back to Dashboard
-        </button>
+        <button className="rt-btn-primary" style={{ marginTop: 16, fontSize: 18, padding: "12px 40px" }} onClick={() => navigate("/")}>Back to Dashboard</button>
       </div>
     )
   }
@@ -653,7 +619,6 @@ function LiveMatch() {
   return (
     <div className="rt-page" style={{ position: "relative" }}>
 
-      {/* Alert Overlay */}
       {alert && (
         <div style={{ position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.78)", pointerEvents: "none" }}>
           <div style={{ background: "var(--card)", border: `3px solid ${alert.color}`, borderRadius: 6, padding: "32px 56px", textAlign: "center" }}>
@@ -663,19 +628,10 @@ function LiveMatch() {
         </div>
       )}
 
-      {/* Quit Modal */}
       {showQuit && (
-        <QuitModal
-          team1Name={team1Name}
-          team2Name={team2Name}
-          t1Score={t1Score}
-          t2Score={t2Score}
-          onConfirm={handleQuit}
-          onCancel={() => setShowQuit(false)}
-        />
+        <QuitModal team1Name={team1Name} team2Name={team2Name} t1Score={t1Score} t2Score={t2Score} onConfirm={handleQuit} onCancel={() => setShowQuit(false)} />
       )}
 
-      {/* Nav */}
       <nav className="rt-nav">
         <div className="rt-nav-brand" style={{ cursor: "pointer" }} onClick={() => navigate("/")}>
           <div className="rt-nav-logo">
@@ -688,9 +644,7 @@ function LiveMatch() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div className="rt-live-dot" />
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 14, letterSpacing: "3px", color: "var(--orange)", textTransform: "uppercase" }}>
-            Live · Half {half}
-          </span>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 14, letterSpacing: "3px", color: "var(--orange)", textTransform: "uppercase" }}>Live · Half {half}</span>
           {isDoOrDie && (
             <span style={{ fontFamily: "var(--font-display)", fontSize: 12, letterSpacing: 2, color: "#FF5C00", background: "rgba(255,92,0,0.15)", border: "1px solid rgba(255,92,0,0.4)", padding: "2px 10px", borderRadius: 2 }}>
               DO OR DIE — {raidingTeamName}
@@ -698,19 +652,13 @@ function LiveMatch() {
           )}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => setShowQuit(true)}
-            style={{ background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 3, color: "var(--orange)", fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: 1, padding: "6px 14px", cursor: "pointer", textTransform: "uppercase" }}
-          >
+          <button onClick={() => setShowQuit(true)} style={{ background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 3, color: "var(--orange)", fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: 1, padding: "6px 14px", cursor: "pointer", textTransform: "uppercase" }}>
             Quit Match
           </button>
-          <button className="rt-btn-secondary" style={{ fontSize: 13, padding: "6px 16px" }} onClick={() => navigate("/")}>
-            ← Dashboard
-          </button>
+          <button className="rt-btn-secondary" style={{ fontSize: 13, padding: "6px 16px" }} onClick={() => navigate("/")}>← Dashboard</button>
         </div>
       </nav>
 
-      {/* Match Clock */}
       <div style={{ background: isRunning ? "rgba(255,92,0,0.12)" : "var(--card)", borderBottom: `2px solid ${isRunning ? "var(--orange)" : "var(--border)"}`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.3s" }}>
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 36, letterSpacing: 3, color: "#fff", lineHeight: 1 }}>{fmt(matchTime)}</div>
@@ -720,7 +668,7 @@ function LiveMatch() {
           <button className="rt-btn-primary" style={{ fontSize: 14, padding: "7px 20px", opacity: isRunning ? 0.4 : 1 }} disabled={isRunning}
             onClick={async () => {
               setIsRunning(true)
-              await supabase.from("matches").update({ is_running: true, status: "live" }).eq("id", id)
+              await syncDB({ is_running: true, status: "live", last_event: "▶ Match started!" })
             }}>
             ▶ Start
           </button>
@@ -728,7 +676,7 @@ function LiveMatch() {
             onClick={async () => {
               setIsRunning(false)
               setRaidRunning(false)
-              await supabase.from("matches").update({ is_running: false, status: "paused" }).eq("id", id)
+              await syncDB({ is_running: false, status: "paused", time_remaining: matchTime, last_event: "⏸ Match paused" })
             }}>
             ⏸ Pause
           </button>
@@ -743,7 +691,6 @@ function LiveMatch() {
         </div>
       </div>
 
-      {/* Scoreboard */}
       <div style={{ background: "var(--card)", borderBottom: "1px solid var(--border)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(255,92,0,0.07) 0%, transparent 60%)", pointerEvents: "none" }} />
         <div style={{ maxWidth: 800, margin: "0 auto", padding: "20px 24px 0", display: "flex", alignItems: "center" }}>
@@ -773,10 +720,8 @@ function LiveMatch() {
         </div>
       </div>
 
-      {/* Main Grid */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
-        {/* LEFT — Raiding */}
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: 4, color: "var(--yellow)", marginBottom: 10, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 8 }}>
             <div className="rt-live-dot" style={{ background: "var(--yellow)" }} />
@@ -810,7 +755,6 @@ function LiveMatch() {
           <OutQueuePanel queue={raidingOutQ} allPlayers={raidingPlayers} accentColor="var(--yellow)" label={raidingTeamName} />
         </div>
 
-        {/* RIGHT — Defending */}
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: 4, color: "var(--cyan)", marginBottom: 10, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 8 }}>
             🛡 {defendingTeamName} — Defending
@@ -852,7 +796,6 @@ function LiveMatch() {
                 )
               })}
 
-              {/* Bonus Line */}
               {raidPhase === "raiding" && (
                 <div onClick={() => setBonusTouched(prev => !prev)}
                   style={{ marginTop: 6, padding: "12px 14px", borderRadius: 3, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", border: bonusTouched ? "2px solid var(--yellow)" : "1px dashed rgba(255,214,0,0.35)", background: bonusTouched ? "rgba(255,214,0,0.1)" : "transparent", transition: "all 0.15s" }}>
