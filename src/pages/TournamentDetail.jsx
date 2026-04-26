@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { supabase } from "../services/supabaseClient"
+import { useAuth } from "../context/AuthContext"
 
 // ── Helpers ───────────────────────────────────────────────────
 const fmt = (t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`
@@ -62,9 +63,8 @@ const NAV = ({ navigate, tournamentName }) => (
 )
 
 // ── Tournament Info Panel (replaces ticker) ───────────────────
-function TournamentInfoPanel({ tournament, standings, matches, completedMatches, onDelete }) {
+function TournamentInfoPanel({ tournament, standings, matches, completedMatches, onDeleteRequest }) {
   const [open, setOpen] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const totalTime = (tournament.half_duration / 60) * 2
   const teamsReady = standings.length
@@ -136,32 +136,12 @@ function TournamentInfoPanel({ tournament, standings, matches, completedMatches,
 
             {/* Delete zone */}
             <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-              {!confirmDelete ? (
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  style={{ background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 3, color: "var(--orange)", fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "7px 18px", cursor: "pointer" }}
-                >
-                  🗑 Delete Tournament
-                </button>
-              ) : (
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--orange)" }}>
-                    This will delete the tournament and ALL its upcoming matches. Are you sure?
-                  </span>
-                  <button
-                    onClick={onDelete}
-                    style={{ background: "var(--orange)", border: "none", borderRadius: 3, color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: 1, padding: "7px 20px", cursor: "pointer" }}
-                  >
-                    Yes, Delete
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 3, color: "var(--muted)", fontSize: 13, fontWeight: 700, letterSpacing: 1, padding: "7px 16px", cursor: "pointer" }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
+              <button
+                onClick={onDeleteRequest}
+                style={{ background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 3, color: "var(--orange)", fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "7px 18px", cursor: "pointer" }}
+              >
+                🗑 Delete Tournament
+              </button>
             </div>
           </div>
         </div>
@@ -393,6 +373,7 @@ function MatchRow({ match, onStart, hasLiveMatch, navigate }) {
 function TournamentDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user, signIn } = useAuth()
 
   const [tournament,  setTournament]  = useState(null)
   const [standings,   setStandings]   = useState([])   // tournament_teams rows sorted by points
@@ -402,13 +383,43 @@ function TournamentDetail() {
   const [error,       setError]       = useState("")
   const [tab,         setTab]         = useState("fixtures") // "fixtures" | "standings/bracket"
 
-  const handleDeleteTournament = async () => {
-    // Delete all upcoming matches for this tournament
-    await supabase.from("matches").delete().eq("tournament_id", id).eq("status", "upcoming")
+  // ── Delete modal state ────────────────────────────────────────
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePassword,  setDeletePassword]  = useState("")
+  const [deleteError,     setDeleteError]     = useState("")
+  const [deleting,        setDeleting]        = useState(false)
+
+  const handleDeleteRequest = () => {
+    setDeletePassword("")
+    setDeleteError("")
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletePassword) { setDeleteError("Enter your password to confirm"); return }
+    setDeleting(true)
+    setDeleteError("")
+
+    // Verify password by re-authenticating
+    const { error: authErr } = await signIn(user.email, deletePassword)
+    if (authErr) {
+      setDeleteError("Incorrect password. Please try again.")
+      setDeleting(false)
+      return
+    }
+
+    // Delete all matches for this tournament (all statuses)
+    const { error: matchErr } = await supabase.from("matches").delete().eq("tournament_id", id)
+    if (matchErr) { setDeleteError("Failed to delete matches: " + matchErr.message); setDeleting(false); return }
+
     // Delete tournament_teams
-    await supabase.from("tournament_teams").delete().eq("tournament_id", id)
+    const { error: ttErr } = await supabase.from("tournament_teams").delete().eq("tournament_id", id)
+    if (ttErr) { setDeleteError("Failed to delete team data: " + ttErr.message); setDeleting(false); return }
+
     // Delete the tournament itself
-    await supabase.from("tournaments").delete().eq("id", id)
+    const { error: tErr } = await supabase.from("tournaments").delete().eq("id", id)
+    if (tErr) { setDeleteError("Failed to delete tournament: " + tErr.message); setDeleting(false); return }
+
     navigate("/tournaments")
   }
 
@@ -667,7 +678,7 @@ function TournamentDetail() {
         standings={standings}
         matches={matches}
         completedMatches={completedMatches}
-        onDelete={handleDeleteTournament}
+        onDeleteRequest={handleDeleteRequest}
       />
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "36px 20px 60px" }}>
@@ -860,6 +871,54 @@ function TournamentDetail() {
           </>
         )}
       </div>
+
+      {/* ── Delete Password Modal ─────────────────────────────── */}
+      {showDeleteModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderTop: "3px solid var(--orange)", borderRadius: 4, padding: "32px 28px", width: "100%", maxWidth: 400 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 26, letterSpacing: 2, color: "var(--orange)", textTransform: "uppercase", marginBottom: 8 }}>
+              Delete Tournament
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", lineHeight: 1.6, marginBottom: 24 }}>
+              This will permanently delete <span style={{ color: "#fff" }}>{tournament.name}</span> along with all its fixtures and data. Enter your password to confirm.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+              <label style={{ fontFamily: "var(--font-display)", fontSize: 12, letterSpacing: "3px", textTransform: "uppercase", color: "var(--muted)" }}>Your Password</label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={deletePassword}
+                onChange={e => { setDeletePassword(e.target.value); setDeleteError("") }}
+                onKeyDown={e => e.key === "Enter" && handleDeleteConfirm()}
+                className="rt-input"
+                style={{ width: "100%" }}
+                autoFocus
+              />
+            </div>
+            {deleteError && (
+              <div style={{ background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 3, padding: "10px 14px", fontSize: 13, fontWeight: 600, color: "var(--orange)", marginBottom: 16 }}>
+                {deleteError}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                style={{ flex: 1, padding: "12px 0", background: "var(--orange)", border: "none", borderRadius: 3, color: "#fff", fontFamily: "var(--font-display)", fontSize: 16, letterSpacing: 1, textTransform: "uppercase", cursor: deleting ? "not-allowed" : "pointer", opacity: deleting ? 0.6 : 1 }}
+              >
+                {deleting ? "Deleting..." : "Yes, Delete"}
+              </button>
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeleteError("") }}
+                disabled={deleting}
+                style={{ flex: 1, padding: "12px 0", background: "transparent", border: "1px solid var(--border)", borderRadius: 3, color: "var(--muted)", fontFamily: "var(--font-display)", fontSize: 16, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
