@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../services/supabaseClient"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 
 function CreateMatch() {
   const [teams,    setTeams]    = useState([])
@@ -10,11 +11,12 @@ function CreateMatch() {
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState("")
   const navigate = useNavigate()
+  const { user } = useAuth()
 
-  useEffect(() => { fetchTeams() }, [])
+  useEffect(() => { if (user) fetchTeams() }, [user])
 
   const fetchTeams = async () => {
-    const { data, error } = await supabase.from("teams").select("*")
+    const { data, error } = await supabase.from("teams").select("*").eq("user_id", user.id)
     if (error) console.error("Error fetching teams:", error)
     setTeams(data || [])
   }
@@ -66,6 +68,7 @@ function CreateMatch() {
           team1_score:    0,
           team2_score:    0,
           is_running:     false,
+          user_id:        user.id,
         }])
         .select()
 

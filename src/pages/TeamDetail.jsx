@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { supabase } from "../services/supabaseClient"
+import { useAuth } from "../context/AuthContext"
 
 function TeamDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [team, setTeam] = useState(null)
   const [players, setPlayers] = useState([])
   const [playerName, setPlayerName] = useState("")
@@ -31,6 +33,7 @@ function TeamDetail() {
       name: playerName.trim(),
       position,
       team_id: id,
+      user_id: user.id,
     }])
     setPlayerName("")
     fetchPlayers()

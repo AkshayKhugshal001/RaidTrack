@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../services/supabaseClient"
+import { useAuth } from "../context/AuthContext"
 
 const NAV = ({ navigate }) => (
   <nav className="rt-nav">
@@ -25,6 +26,7 @@ const NAV = ({ navigate }) => (
 
 function Tournaments() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [tournaments, setTournaments] = useState([])
   const [teams,       setTeams]       = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -39,21 +41,21 @@ function Tournaments() {
   const [showForm,     setShowForm]     = useState(false)
 
   useEffect(() => {
-    fetchTournaments()
-    fetchTeams()
-  }, [])
+    if (user) { fetchTournaments(); fetchTeams() }
+  }, [user])
 
   const fetchTournaments = async () => {
     const { data } = await supabase
       .from("tournaments")
       .select("*, tournament_teams(team_id, teams(name))")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
     setTournaments(data || [])
     setLoading(false)
   }
 
   const fetchTeams = async () => {
-    const { data } = await supabase.from("teams").select("*").order("name")
+    const { data } = await supabase.from("teams").select("*").eq("user_id", user.id).order("name")
     setTeams(data || [])
   }
 
@@ -86,6 +88,7 @@ function Tournaments() {
           format,
           status: "upcoming",
           half_duration: halfMins * 60,
+          user_id: user.id,
         }])
         .select()
         .single()
@@ -97,6 +100,7 @@ function Tournaments() {
         tournament_id: tournament.id,
         team_id,
         played: 0, wins: 0, losses: 0, draws: 0, points: 0, score_for: 0, score_against: 0,
+        user_id: user.id,
       }))
       const { error: ttErr } = await supabase.from("tournament_teams").insert(teamRows)
       if (ttErr) { setError("Failed to add teams: " + ttErr.message); setCreating(false); return }

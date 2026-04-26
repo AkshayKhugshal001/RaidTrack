@@ -7,17 +7,18 @@ const fmt = (t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`
 
 function Dashboard() {
   const navigate = useNavigate()
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
 
   const [matches,  setMatches]  = useState([])
   const [loading,  setLoading]  = useState(true)
 
-  useEffect(() => { fetchMatches() }, [])
+  useEffect(() => { if (user) fetchMatches() }, [user])
 
   const fetchMatches = async () => {
     const { data } = await supabase
       .from("matches")
       .select(`*, team1:team1_id(name), team2:team2_id(name)`)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
     setMatches(data || [])
     setLoading(false)

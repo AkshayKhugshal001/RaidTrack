@@ -1,27 +1,30 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../services/supabaseClient"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 
 function Teams() {
   const [teams, setTeams] = useState([])
   const [teamName, setTeamName] = useState("")
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   useEffect(() => {
-    fetchTeams()
-  }, [])
+    if (user) fetchTeams()
+  }, [user])
 
   const fetchTeams = async () => {
     const { data } = await supabase
       .from("teams")
       .select("*")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
     setTeams(data || [])
   }
 
   const addTeam = async () => {
     if (!teamName.trim()) return
-    await supabase.from("teams").insert([{ name: teamName.trim() }])
+    await supabase.from("teams").insert([{ name: teamName.trim(), user_id: user.id }])
     setTeamName("")
     fetchTeams()
   }
