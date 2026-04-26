@@ -24,8 +24,11 @@ function Dashboard() {
   }
 
   const ongoingMatches  = matches.filter(m => m.status === "live" || m.status === "paused")
-  const upcomingMatches = matches.filter(m => m.status === "upcoming")
-  const completedMatches= matches.filter(m => m.status === "completed" || m.status === "draw")
+  // Only show standalone matches on dashboard — tournament fixtures are managed inside their tournament
+  const upcomingMatches = matches.filter(m => m.status === "upcoming" && !m.tournament_id)
+  const completedMatches= matches.filter(m => (m.status === "completed" || m.status === "draw") && !m.tournament_id)
+  const tournamentOngoing = ongoingMatches.filter(m => m.tournament_id)
+  const standaloneOngoing = ongoingMatches.filter(m => !m.tournament_id)
 
   // Only allow starting a new match if no match is currently live
   const hasLiveMatch = matches.some(m => m.status === "live")
@@ -154,13 +157,13 @@ function Dashboard() {
         ) : (
           <>
             {/* ── Ongoing Matches ── */}
-            {ongoingMatches.length > 0 && (
+            {standaloneOngoing.length > 0 && (
               <div style={{ marginBottom: 36 }}>
                 <div className="rt-section-label" style={{ color: "var(--orange)" }}>
                   Ongoing Matches
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {ongoingMatches.map(match => (
+                  {standaloneOngoing.map(match => (
                     <MatchCard
                       key={match.id}
                       match={match}
@@ -168,6 +171,35 @@ function Dashboard() {
                       onResume={() => navigate(`/live-match/${match.id}`)}
                     />
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Tournament Live Matches ── */}
+            {tournamentOngoing.length > 0 && (
+              <div style={{ marginBottom: 36 }}>
+                <div className="rt-section-label" style={{ color: "var(--orange)" }}>
+                  Tournament Match Live
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {tournamentOngoing.map(match => (
+                    <MatchCard
+                      key={match.id}
+                      match={match}
+                      type="ongoing"
+                      onResume={() => navigate(`/live-match/${match.id}`)}
+                    />
+                  ))}
+                </div>
+                <div style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: "var(--muted)", letterSpacing: 1, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>Manage tournament fixtures inside</span>
+                  <button
+                    className="rt-btn-secondary"
+                    style={{ fontSize: 11, padding: "3px 12px" }}
+                    onClick={() => navigate("/tournaments")}
+                  >
+                    Tournaments →
+                  </button>
                 </div>
               </div>
             )}

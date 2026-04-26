@@ -61,6 +61,115 @@ const NAV = ({ navigate, tournamentName }) => (
   </nav>
 )
 
+// ── Tournament Info Panel (replaces ticker) ───────────────────
+function TournamentInfoPanel({ tournament, standings, matches, completedMatches, onDelete }) {
+  const [open, setOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const totalTime = (tournament.half_duration / 60) * 2
+  const teamsReady = standings.length
+  const fixturesTotal = matches.length
+  const fixturesDone = completedMatches.length
+  const fixturesLeft = fixturesTotal - fixturesDone
+  const statusColor =
+    tournament.status === "ongoing"   ? "var(--orange)" :
+    tournament.status === "completed" ? "var(--green)"  : "var(--cyan)"
+
+  return (
+    <div style={{ background: "#0a0a0a", borderBottom: "1px solid var(--border)", position: "relative" }}>
+      {/* Collapsed bar — always visible */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%", background: "none", border: "none", cursor: "pointer",
+          padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 11, letterSpacing: 3, color: statusColor, textTransform: "uppercase", padding: "2px 8px", border: `1px solid ${statusColor}`, borderRadius: 2 }}>
+            {tournament.status}
+          </span>
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 700, color: "var(--muted)", letterSpacing: 1 }}>
+            {tournament.format === "league" ? "Round Robin" : "Knockout"} · {teamsReady} Teams · {totalTime} min total · {fixturesDone}/{fixturesTotal} played
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 11, letterSpacing: 2, color: "var(--cyan)", textTransform: "uppercase" }}>
+            {open ? "Hide Details ▲" : "Show Details ▼"}
+          </span>
+        </div>
+      </button>
+
+      {/* Expanded panel */}
+      {open && (
+        <div style={{ borderTop: "1px solid var(--border)", padding: "20px 24px 24px", background: "var(--card)" }}>
+          <div style={{ maxWidth: 960, margin: "0 auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12, marginBottom: 20 }}>
+              {[
+                { label: "Format",       value: tournament.format === "league" ? "Round Robin" : "Knockout", color: "var(--cyan)" },
+                { label: "Teams",        value: teamsReady,      color: "var(--yellow)" },
+                { label: "Half Duration",value: `${tournament.half_duration / 60} min`, color: "var(--orange)" },
+                { label: "Total Time",   value: `${totalTime} min`, color: "var(--orange)" },
+                { label: "Fixtures",     value: fixturesTotal,   color: "var(--yellow)" },
+                { label: "Played",       value: fixturesDone,    color: "var(--green)"  },
+                { label: "Remaining",    value: fixturesLeft,    color: "var(--muted)"  },
+                { label: "Status",       value: tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1), color: statusColor },
+              ].map(item => (
+                <div key={item.label} style={{ background: "var(--card2)", border: "1px solid var(--border)", borderRadius: 4, padding: "12px 14px" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 22, letterSpacing: 1, color: item.color, lineHeight: 1 }}>{item.value}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: "var(--muted)", textTransform: "uppercase", marginTop: 4 }}>{item.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Teams list */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>Participating Teams</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {standings.map((row, i) => (
+                  <span key={row.team_id} style={{ fontFamily: "var(--font-display)", fontSize: 14, letterSpacing: 1, color: i === 0 && tournament.status === "completed" ? "var(--yellow)" : "#fff", background: "rgba(255,255,255,0.06)", border: "1px solid var(--border)", borderRadius: 3, padding: "5px 12px", textTransform: "uppercase" }}>
+                    {i === 0 && tournament.status === "completed" ? "🏆 " : ""}{row.teams?.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Delete zone */}
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+              {!confirmDelete ? (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  style={{ background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.3)", borderRadius: 3, color: "var(--orange)", fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "7px 18px", cursor: "pointer" }}
+                >
+                  🗑 Delete Tournament
+                </button>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--orange)" }}>
+                    This will delete the tournament and ALL its upcoming matches. Are you sure?
+                  </span>
+                  <button
+                    onClick={onDelete}
+                    style={{ background: "var(--orange)", border: "none", borderRadius: 3, color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: 1, padding: "7px 20px", cursor: "pointer" }}
+                  >
+                    Yes, Delete
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 3, color: "var(--muted)", fontSize: 13, fontWeight: 700, letterSpacing: 1, padding: "7px 16px", cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── League Standings Table ────────────────────────────────────
 function LeagueStandings({ standings }) {
   return (
@@ -292,6 +401,16 @@ function TournamentDetail() {
   const [generating,  setGenerating]  = useState(false)
   const [error,       setError]       = useState("")
   const [tab,         setTab]         = useState("fixtures") // "fixtures" | "standings/bracket"
+
+  const handleDeleteTournament = async () => {
+    // Delete all upcoming matches for this tournament
+    await supabase.from("matches").delete().eq("tournament_id", id).eq("status", "upcoming")
+    // Delete tournament_teams
+    await supabase.from("tournament_teams").delete().eq("tournament_id", id)
+    // Delete the tournament itself
+    await supabase.from("tournaments").delete().eq("id", id)
+    navigate("/tournaments")
+  }
 
   const fetchAll = useCallback(async () => {
     // Load tournament
@@ -542,17 +661,14 @@ function TournamentDetail() {
     <div className="rt-page">
       <NAV navigate={navigate} tournamentName={tournament.name} />
 
-      {/* Ticker */}
-      <div style={{ background: "var(--cyan)", padding: "5px 0", overflow: "hidden", whiteSpace: "nowrap" }}>
-        <div style={{ display: "inline-flex", gap: 48, animation: "rt-ticker 22s linear infinite" }}>
-          {[tournament.name, `${standings.length} Teams`, `${tournament.format === "league" ? "Round Robin" : "Knockout Bracket"}`, `${tournament.half_duration / 60}m Halves`, tournament.name, `${standings.length} Teams`, `${tournament.format === "league" ? "Round Robin" : "Knockout Bracket"}`, `${tournament.half_duration / 60}m Halves`].map((text, i) => (
-            <span key={i} style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: "#000" }}>
-              {text}
-              {i % 4 !== 3 && <span style={{ color: "rgba(0,0,0,0.4)", marginLeft: 12 }}>●</span>}
-            </span>
-          ))}
-        </div>
-      </div>
+      {/* Info Panel (replaces ticker) */}
+      <TournamentInfoPanel
+        tournament={tournament}
+        standings={standings}
+        matches={matches}
+        completedMatches={completedMatches}
+        onDelete={handleDeleteTournament}
+      />
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "36px 20px 60px" }}>
 
