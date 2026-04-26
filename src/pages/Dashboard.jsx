@@ -49,6 +49,7 @@ function Dashboard() {
             <span className="rt-nav-link active">Dashboard</span>
             <button className="rt-nav-link" onClick={() => navigate("/create-match")}>Matches</button>
             <button className="rt-nav-link" onClick={() => navigate("/teams")}>Teams</button>
+            <button className="rt-nav-link" onClick={() => navigate("/tournaments")}>Tournaments</button>
           </div>
           <button
             className="rt-btn-secondary"
@@ -82,7 +83,7 @@ function Dashboard() {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "36px 20px 60px" }}>
 
         {/* Quick actions */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 40 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 40 }}>
 
           {/* Create match */}
           <div
@@ -124,6 +125,25 @@ function Dashboard() {
               Add teams, players and assign positions.
             </div>
             <div style={{ marginTop: 16, fontFamily: "var(--font-display)", fontSize: 14, letterSpacing: 2, color: "var(--orange)" }}>Go to Teams →</div>
+          </div>
+
+          {/* Tournaments */}
+          <div
+            onClick={() => navigate("/tournaments")}
+            style={{ background: "var(--card)", border: "1px solid var(--border)", borderTop: "3px solid var(--cyan)", borderRadius: 4, padding: "28px 24px", cursor: "pointer", transition: "background 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.background = "var(--card2)"}
+            onMouseLeave={e => e.currentTarget.style.background = "var(--card)"}
+          >
+            <div style={{ width: 44, height: 44, background: "rgba(0,229,255,0.15)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M11 2l2.5 5 5.5.8-4 3.9.9 5.5L11 14.5 6.1 17.2l.9-5.5L3 7.8l5.5-.8z" stroke="var(--cyan)" strokeWidth="1.5" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 26, letterSpacing: 2, color: "var(--cyan)", marginBottom: 8 }}>Tournaments</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", lineHeight: 1.6 }}>
+              Create league or knockout tournaments.
+            </div>
+            <div style={{ marginTop: 16, fontFamily: "var(--font-display)", fontSize: 14, letterSpacing: 2, color: "var(--cyan)" }}>Go to Tournaments →</div>
           </div>
         </div>
 

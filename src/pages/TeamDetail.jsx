@@ -73,6 +73,7 @@ function TeamDetail() {
           <button className="rt-nav-link" onClick={() => navigate("/")}>Dashboard</button>
           <button className="rt-nav-link" onClick={() => navigate("/create-match")}>Matches</button>
           <button className="rt-nav-link active" onClick={() => navigate("/teams")}>Teams</button>
+          <button className="rt-nav-link" onClick={() => navigate("/tournaments")}>Tournaments</button>
         </div>
         <button className="rt-nav-cta" onClick={() => navigate("/create-match")}>
           + New Match

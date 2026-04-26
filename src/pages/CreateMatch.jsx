@@ -111,6 +111,7 @@ function CreateMatch() {
           <button className="rt-nav-link" onClick={() => navigate("/")}>Dashboard</button>
           <span className="rt-nav-link active">Matches</span>
           <button className="rt-nav-link" onClick={() => navigate("/teams")}>Teams</button>
+          <button className="rt-nav-link" onClick={() => navigate("/tournaments")}>Tournaments</button>
         </div>
         <button className="rt-nav-cta" onClick={() => navigate("/teams")}>Manage Teams</button>
       </nav>

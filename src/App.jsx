@@ -1,14 +1,16 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "./context/AuthContext"
 
-import Dashboard    from "./pages/Dashboard"
-import CreateMatch  from "./pages/CreateMatch"
-import LiveMatch    from "./pages/LiveMatch"
-import Teams        from "./pages/Teams"
-import TeamDetail   from "./pages/TeamDetail"
-import Login        from "./pages/Login"
-import ViewerHome   from "./pages/ViewerHome"
-import ViewerMatch  from "./pages/ViewerMatch"
+import Dashboard          from "./pages/Dashboard"
+import CreateMatch        from "./pages/CreateMatch"
+import LiveMatch          from "./pages/LiveMatch"
+import Teams              from "./pages/Teams"
+import TeamDetail         from "./pages/TeamDetail"
+import Login              from "./pages/Login"
+import ViewerHome         from "./pages/ViewerHome"
+import ViewerMatch        from "./pages/ViewerMatch"
+import Tournaments        from "./pages/Tournaments"
+import TournamentDetail   from "./pages/TournamentDetail"
 
 // ── Protected Route ───────────────────────────────────────────
 // Redirects to /login if not authenticated
@@ -61,6 +63,12 @@ function AppRoutes() {
       } />
       <Route path="/team/:id" element={
         <ProtectedRoute><TeamDetail /></ProtectedRoute>
+      } />
+      <Route path="/tournaments" element={
+        <ProtectedRoute><Tournaments /></ProtectedRoute>
+      } />
+      <Route path="/tournament/:id" element={
+        <ProtectedRoute><TournamentDetail /></ProtectedRoute>
       } />
 
       {/* Catch all */}
